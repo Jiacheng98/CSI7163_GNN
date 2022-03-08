@@ -1,5 +1,4 @@
 # Jiacheng Hou (300125708)
-# jhou013@uottawa.ca
 
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
