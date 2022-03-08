@@ -1,0 +1,105 @@
+Number of train samples: 7352
+Shape of input features: (7352, 128, 9)
+A graph sample: StellarGraph: Undirected multigraph
+ Nodes: 128, Edges: 127
+
+ Node types:
+  default: [128]
+    Features: float32 vector, length 9
+    Edge types: default-default->default
+
+ Edge types:
+    default-default->default: [127]
+        Weights: all 1 (default)
+        Features: none
+All graphs summary:         nodes   edges
+count  7352.0  7352.0
+mean    128.0   127.0
+std       0.0     0.0
+min     128.0   127.0
+25%     128.0   127.0
+50%     128.0   127.0
+75%     128.0   127.0
+max     128.0   127.0
+Number of test samples: 2947
+Shape of input features: (2947, 128, 9)
+A graph sample: StellarGraph: Undirected multigraph
+ Nodes: 128, Edges: 127
+
+ Node types:
+  default: [128]
+    Features: float32 vector, length 9
+    Edge types: default-default->default
+
+ Edge types:
+    default-default->default: [127]
+        Weights: all 1 (default)
+        Features: none
+All graphs summary:         nodes   edges
+count  2947.0  2947.0
+mean    128.0   127.0
+std       0.0     0.0
+min     128.0   127.0
+25%     128.0   127.0
+50%     128.0   127.0
+75%     128.0   127.0
+max     128.0   127.0
+Model: "model"
+__________________________________________________________________________________________________
+ Layer (type)                   Output Shape         Param #     Connected to                     
+==================================================================================================
+ input_1 (InputLayer)           [(None, None, 9)]    0           []                               
+                                                                                                  
+ dropout (Dropout)              (None, None, 9)      0           ['input_1[0][0]']                
+                                                                                                  
+ input_3 (InputLayer)           [(None, None, None)  0           []                               
+                                ]                                                                 
+                                                                                                  
+ graph_convolution (GraphConvol  (None, None, 64)    640         ['dropout[0][0]',                
+ ution)                                                           'input_3[0][0]']                
+                                                                                                  
+ dropout_1 (Dropout)            (None, None, 64)     0           ['graph_convolution[0][0]']      
+                                                                                                  
+ graph_convolution_1 (GraphConv  (None, None, 64)    4160        ['dropout_1[0][0]',              
+ olution)                                                         'input_3[0][0]']                
+                                                                                                  
+ dropout_2 (Dropout)            (None, None, 64)     0           ['graph_convolution_1[0][0]']    
+                                                                                                  
+ graph_convolution_2 (GraphConv  (None, None, 64)    4160        ['dropout_2[0][0]',              
+ olution)                                                         'input_3[0][0]']                
+                                                                                                  
+ input_2 (InputLayer)           [(None, None)]       0           []                               
+                                                                                                  
+ global_average_pooling1d (Glob  (None, 64)          0           ['graph_convolution_2[0][0]',    
+ alAveragePooling1D)                                              'input_2[0][0]']                
+                                                                                                  
+ dense (Dense)                  (None, 32)           2080        ['global_average_pooling1d[0][0]'
+                                                                 ]                                
+                                                                                                  
+ dense_1 (Dense)                (None, 16)           528         ['dense[0][0]']                  
+                                                                                                  
+ dense_2 (Dense)                (None, 6)            102         ['dense_1[0][0]']                
+                                                                                                  
+==================================================================================================
+Total params: 11,670
+Trainable params: 11,670
+Non-trainable params: 0
+__________________________________________________________________________________________________
+
+Loss on testing dataset: 0.5690839886665344
+Accuracy on testing dataset: 0.8320325613021851
+Buffer deduplication procedure will be skipped when flatbuffer library is not properly loaded
+
+TFLite model input details:
+
+{'name': 'serving_default_input_1:0', 'index': 0, 'shape': array([1, 1, 9], dtype=int32), 'shape_signature': array([-1, -1,  9], dtype=int32), 'dtype': <class 'numpy.float32'>, 'quantization': (0.0, 0), 'quantization_parameters': {'scales': array([], dtype=float32), 'zero_points': array([], dtype=int32), 'quantized_dimension': 0}, 'sparsity_parameters': {}}
+
+{'name': 'serving_default_input_3:0', 'index': 1, 'shape': array([1, 1, 1], dtype=int32), 'shape_signature': array([-1, -1, -1], dtype=int32), 'dtype': <class 'numpy.float32'>, 'quantization': (0.0, 0), 'quantization_parameters': {'scales': array([], dtype=float32), 'zero_points': array([], dtype=int32), 'quantized_dimension': 0}, 'sparsity_parameters': {}}
+
+{'name': 'serving_default_input_2:0', 'index': 2, 'shape': array([1, 1], dtype=int32), 'shape_signature': array([-1, -1], dtype=int32), 'dtype': <class 'numpy.bool_'>, 'quantization': (0.0, 0), 'quantization_parameters': {'scales': array([], dtype=float32), 'zero_points': array([], dtype=int32), 'quantized_dimension': 0}, 'sparsity_parameters': {}}
+
+TFLite model output details: 
+[{'name': 'StatefulPartitionedCall:0', 'index': 59, 'shape': array([1, 6], dtype=int32), 'shape_signature': array([-1,  6], dtype=int32), 'dtype': <class 'numpy.float32'>, 'quantization': (0.0, 0), 'quantization_parameters': {'scales': array([], dtype=float32), 'zero_points': array([], dtype=int32), 'quantized_dimension': 0}, 'sparsity_parameters': {}}]
+
+TFLite model signature details: 
+{'serving_default': {'inputs': {'input_1': 0, 'input_2': 2, 'input_3': 1}, 'outputs': {'dense_2': 59}}}
