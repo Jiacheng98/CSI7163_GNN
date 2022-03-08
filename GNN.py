@@ -72,8 +72,7 @@ batch_size = 100
 
 
 def main():
-    for data in ['train']:
-    # for data in ['train', 'test']:
+    for data in ['train', 'test']:
         # convert training and testing data into numpy array
         input_features, label = convert_data_into_numpy(data)
         # convert numpy array label to one-hot label (no order)
