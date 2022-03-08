@@ -1,3 +1,6 @@
+# Jiacheng Hou (300125708)
+# jhou013@uottawa.ca
+
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -14,15 +17,17 @@ from stellargraph import StellarGraph
 from tensorflow.keras import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.layers import Dense
-from tensorflow.keras.losses import sparse_categorical_crossentropy
+from tensorflow.keras.losses import sparse_categorical_crossentropy, categorical_crossentropy
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 import tensorflow as tf
 
-# from tensorflow.python.client import device_lib
-# print(device_lib.list_local_devices())
+from tensorflow.python.client import device_lib
+print(device_lib.list_local_devices())
+print(f"Tensor Flow Version: {tf.__version__}")
 
 np.random.seed(1)
 tf.random.set_seed(1)
+sg.random.set_seed(1)
 
 import logging
 Log_Format = "%(message)s"
@@ -35,12 +40,12 @@ logger = logging.getLogger()
 
 
 activities = {
-    1: 'WALKING',
-    2: 'WALKING_UPSTAIRS',
-    3: 'WALKING_DOWNSTAIRS',
-    4: 'SITTING',
-    5: 'STANDING',
-    6: 'LAYING',
+    0: 'WALKING',
+    1: 'WALKING_UPSTAIRS',
+    2: 'WALKING_DOWNSTAIRS',
+    3: 'SITTING',
+    4: 'STANDING',
+    5: 'LAYING',
 }
 
 
@@ -67,18 +72,23 @@ batch_size = 100
 
 
 def main():
-    for data in ['train', 'test']:
+    for data in ['train']:
+    # for data in ['train', 'test']:
         # convert training and testing data into numpy array
         input_features, label = convert_data_into_numpy(data)
+        # convert numpy array label to one-hot label (no order)
+        label = convert_label_into_one_hot(label)
         # load numpy array to StellarGraph objects, each with nodes features and graph structures
         graphs_list = load_to_stellargraph(input_features)
-
         # create a data generator in order to feed data into the tf.Keras model
         generator = PaddedGraphGenerator(graphs=graphs_list)
         sample_index = [i for i in range(input_features.shape[0])]
+        # split train and validation dataset as 80%, 20%
+        split_train_valid = int(len(sample_index) * 0.8)
 
         if data == "train":
-            train_gen = generator.flow(sample_index, targets = label, batch_size = batch_size)
+            train_gen = generator.flow(sample_index[:split_train_valid], targets = label[:split_train_valid], batch_size = batch_size)
+            valid_gen = generator.flow(sample_index[split_train_valid:], targets = label[split_train_valid:], batch_size = batch_size)
         elif data == "test":
             test_gen = generator.flow(sample_index, targets = label, batch_size = batch_size)
 
@@ -86,17 +96,56 @@ def main():
     # apply early stopping and save the best model
     es = EarlyStopping(monitor="val_loss", min_delta=0, patience=50, restore_best_weights=True)
     mc = ModelCheckpoint('gnn_model', monitor='val_loss', mode='min', save_best_only=True)
-    history = model.fit(train_gen, epochs=epochs, verbose=0, validation_data=test_gen, shuffle=True, callbacks=[es, mc])
+    history = model.fit(train_gen, epochs=epochs, verbose=0, validation_data=valid_gen, shuffle=True, callbacks=[es, mc])
+    # evaluate on testing dataset
+    loss, test_acc = model.evaluate(test_gen, verbose=0)
+    logger.info(f"\nLoss on testing dataset: {loss}")
+    logger.info(f"Accuracy on testing dataset: {test_acc}")
+
+    # plot
     plot(history, "acc", "accuracy")
     plot(history, "loss", "loss")
 
-    # convert the model
+    # convert the model to a TFLiteConverter object
     converter = tf.lite.TFLiteConverter.from_saved_model('gnn_model/')
     tflite_model = converter.convert()
     # save the model as .tflite
     with open('gnn_model/gnn.tflite', 'wb') as f:
       f.write(tflite_model)
 
+
+    ########################################################################################################
+    # try to do inference with tflite model using python
+    # models obtained from 'TfLiteConverter' can be run in Python with `Interpreter`
+    interpreter = tf.lite.Interpreter(model_content=tflite_model)
+    # allocate tensor space in advance and get input and output details, three inputs and one output
+    interpreter.allocate_tensors()
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+    # get the list of SignatureDefs of the model
+    input_signature_list = interpreter._get_full_signature_list() 
+
+    logger.info(f"\nTFLite model input details:")
+    for each_input_tensor in input_details:
+        logger.info(f"\n{each_input_tensor}")
+    logger.info(f"\nTFLite model output details: \n{output_details}")
+    logger.info(f"\nTFLite model signature details: \n{input_signature_list}")
+
+    # [0]['index']: [1, 128, 9], [1]['index']: [1, 128, 128], [2]['index']: [1, True]
+    input_shape_0 = input_details[0]['shape']
+    input_data_0 = np.array(np.random.random_sample(input_shape_0), dtype=np.float32)
+    interpreter.set_tensor(input_details[0]['index'], input_data_0)
+
+    input_shape_1 = input_details[1]['shape']
+    input_data_1 = np.array(np.random.random_sample(input_shape_1), dtype=np.float32)
+    interpreter.set_tensor(input_details[1]['index'], input_data_1)
+
+    input_shape_2 = input_details[2]['shape']
+    input_data_2 = np.array(np.random.random_sample(input_shape_2), dtype=np.bool_)
+    interpreter.set_tensor(input_details[2]['index'], input_data_2)
+    interpreter.invoke()
+    output_data = interpreter.get_tensor(output_details[0]['index'])
+    assert len(output_data[0]) == 6
 
 
 def plot(history, metrics, full_name):
@@ -124,7 +173,7 @@ def convert_data_into_numpy(file_name):
     with open(f"{data_path}/y_{file_name}.txt", "r") as f:
         for position, line in enumerate(f):
             if len(line) > 0:
-                label.append(int(line))
+                label.append(int(line) - 1)
     label = np.array(label)
     logger.info(f"Number of {file_name} samples: {len(label)}")
 
@@ -199,21 +248,41 @@ def load_to_stellargraph(input_features):
     return graphs_list
 
 
+def convert_label_into_one_hot(label):
+
+    shape = (label.size, label.max()+1)
+    one_hot_label = np.zeros(shape)
+    rows = np.arange(label.size)
+    one_hot_label[rows, label] = 1
+
+    return one_hot_label
+
+
+
 def graph_classificaiton_model(generator):
+    # The input tensors are expected to be a list of the following:
+    #     [
+    #         Node features shape (batch size, N, F),
+    #         Mask (batch size, N ), boolean
+    #         Adjacency matrices (batch size, N, N),
+    #     ]
+    # where N is the number of nodes and F the number of input features
     gc_model = GCNSupervisedGraphClassification(
         layer_sizes=[64, 64, 64],
         activations=["relu", "relu", "relu"],
         generator=generator,
         dropout=0.1
     )
+
     x_inp, x_out = gc_model.in_out_tensors()
+    # print(f"Model input shape: {x_inp}")
     predictions = Dense(units=32, activation="relu")(x_out)
     predictions = Dense(units=16, activation="relu")(predictions)
-    predictions = Dense(units=7, activation="softmax")(predictions)
+    predictions = Dense(units=6, activation="softmax")(predictions)
 
     # create the Keras model
     model = Model(inputs=x_inp, outputs=predictions)
-    model.compile(optimizer=Adam(lr), loss=sparse_categorical_crossentropy, metrics=["acc"])
+    model.compile(optimizer=Adam(lr), loss=categorical_crossentropy, metrics=["acc"])
 
     model.summary(print_fn=logger.info)
     return model
