@@ -86,8 +86,8 @@ Trainable params: 11,670
 Non-trainable params: 0
 __________________________________________________________________________________________________
 
-Loss on testing dataset: 0.5690839886665344
-Accuracy on testing dataset: 0.8320325613021851
+Loss on testing dataset: 0.5927600860595703
+Accuracy on testing dataset: 0.8191381096839905
 Buffer deduplication procedure will be skipped when flatbuffer library is not properly loaded
 
 TFLite model input details:

@@ -21,8 +21,8 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 import tensorflow as tf
 
 from tensorflow.python.client import device_lib
-print(device_lib.list_local_devices())
-print(f"Tensor Flow Version: {tf.__version__}")
+# print(device_lib.list_local_devices())
+# print(f"Tensor Flow Version: {tf.__version__}")
 
 np.random.seed(1)
 tf.random.set_seed(1)
@@ -94,9 +94,9 @@ def main():
     # apply early stopping and save the best model
     es = EarlyStopping(monitor="val_loss", min_delta=0, patience=50, restore_best_weights=True)
     mc = ModelCheckpoint('gnn_model', monitor='val_loss', mode='min', save_best_only=True)
-    history = model.fit(train_gen, epochs=epochs, verbose=0, validation_data=valid_gen, shuffle=True, callbacks=[es, mc])
+    history = model.fit(train_gen, epochs=epochs, verbose=1, validation_data=valid_gen, shuffle=True, callbacks=[es, mc])
     # evaluate on testing dataset
-    loss, test_acc = model.evaluate(test_gen, verbose=0)
+    loss, test_acc = model.evaluate(test_gen, verbose=1)
     logger.info(f"\nLoss on testing dataset: {loss}")
     logger.info(f"Accuracy on testing dataset: {test_acc}")
 
@@ -214,6 +214,8 @@ def convert_data_into_numpy(file_name):
         for each_feature in features:
             plt.plot(np.arange(0, 50), output_input_dict[class_type][each_feature][:50], label = each_feature)
         plt.legend(title=activities[class_type],title_fontsize=10,loc='center left', bbox_to_anchor=(1, 0.5))
+        plt.ylabel('values')
+        plt.xlabel('timestamps')
         plt.savefig(f"plot/{activities[class_type]}.jpeg", bbox_inches='tight')
         plt.close()
 
