@@ -7,7 +7,7 @@ classify human activities based on smartphone sensors information only.
 The Human Activity Recognition (HAR) dataset [1],[2] is available in the UCI Machine Learning Repository.
 
 The Graph Neural Network model is from paper [3]. It's a 
-graph classification model where includes two layers of Graph Convolutional
+graph classification model where includes three layers of Graph Convolutional
 Networks(GCN) [4], one pooling layer and two fully connected layers. 
 
 The idea of applying a graph classification model on the 
